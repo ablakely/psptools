@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # pspmount - PSP mount script
-# mounts psp to /mnt/psp
+# mounts psp to /mnt/psp by default
 #
 # Written by Aaron Blakely <aaron@ephasic.org>
 #
@@ -9,11 +9,28 @@
 use strict;
 use warnings;
 
-if (-e "/mnt/psp") {
-	unless (system "sync && umount /mnt/psp && rmdir /mnt/psp") {
+my $mountpath = "/mnt/psp";
+my $idx       = 0;
+
+MODS:
+if ($ARGV[$idx] eq "-p" || $ARGV[$idx] eq "--path") {
+	$mountpath = $ARGV[++$idx];
+
+	$idx++;
+	goto MODS;
+}
+
+if ($ARGV[$idx] eq "-V" || $ARGV[$idx] eq "--version") {
+	print "pspmount: v0.5\nWritten by Aaron Blakely <aaron\@ephasic.org>\n\n";
+	print "pspmount is distributed as part of the psptools package: http://github.com/ablakely/psptools\n";
+	exit;
+}
+
+if (-e "$mountpath") {
+	unless (system "sync && umount $mountpath && rmdir $mountpath") {
 		exit;
 	}
-} 
+}
 
 my $scsiID;
 my $blockDev;
@@ -45,15 +62,15 @@ if ($pspgrep[-1] =~ /scsi (.*)/) {
 			}
 
 			print "Attempting to mount first partiton:";
-			if (!-e "/mnt/psp") {
-				system "mkdir /mnt/psp";
+			if (!-e "$mountpath") {
+				system "mkdir $mountpath";
 			}
 
-			unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] /mnt/psp") {
+			unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] $mountpath") {
 				print " ok\n";
-				print "\nPSP mounted to /mnt/psp\n";
+				print "\nPSP mounted to $mountpath\n";
 			}
-			
+
 		} else {
 			die "Found PSP but it's not mountable!  Exiting.\n";
 		}

@@ -1,10 +1,11 @@
 #!/usr/bin/perl -w
 
-# pspmount - PSP mount script
-# mounts psp to /mnt/psp by default
-#
+# pspmount - PSP mount/umount script
+#            mounts psp to /mnt/psp by default
 # Written by Aaron Blakely <aaron@ephasic.org>
 #
+# Distributed as part of PSPTools:
+# http://github.com/ablakely/psptools
 
 use strict;
 use warnings;

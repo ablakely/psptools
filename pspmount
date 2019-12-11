@@ -13,12 +13,7 @@ my $mountpath = "/mnt/psp";
 my $idx       = 0;
 
 MODS:
-if ($ARGV[$idx] eq "-p" || $ARGV[$idx] eq "--path") {
-	$mountpath = $ARGV[++$idx];
-
-	$idx++;
-	goto MODS;
-}
+if (not defined $ARGV[$idx]) { goto EXEC; }
 
 if ($ARGV[$idx] eq "-V" || $ARGV[$idx] eq "--version") {
 	print "pspmount: v0.5\nWritten by Aaron Blakely <aaron\@ephasic.org>\n\n";
@@ -26,6 +21,15 @@ if ($ARGV[$idx] eq "-V" || $ARGV[$idx] eq "--version") {
 	exit;
 }
 
+if ($ARGV[$idx] eq "-p" || $ARGV[$idx] eq "--path") {
+	$mountpath = $ARGV[++$idx];
+
+	$idx++;
+	goto MODS;
+}
+
+
+EXEC:
 if (-e "$mountpath") {
 	unless (system "sync && umount $mountpath && rmdir $mountpath") {
 		exit;

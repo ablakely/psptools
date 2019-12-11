@@ -1,0 +1,63 @@
+#!/usr/bin/perl -w
+
+# pspmount - PSP mount script
+# mounts psp to /mnt/psp
+#
+# Written by Aaron Blakely <aaron@ephasic.org>
+#
+
+use strict;
+use warnings;
+
+if (-e "/mnt/psp") {
+	unless (system "sync && umount /mnt/psp && rmdir /mnt/psp") {
+		exit;
+	}
+} 
+
+my $scsiID;
+my $blockDev;
+my @partitions;
+
+print "Looking for PSP...\n";
+
+my @pspgrep  = `dmesg | grep Sony | grep PSP`;
+
+if ($pspgrep[-1] =~ /scsi (.*)/) {
+	my @s = split(" ", $1);
+	$scsiID = $s[0];
+	$scsiID =~ s/\:$//;
+
+	print "\nFOUND! \nADDR: $scsiID\n";
+	my @bdlookup = `dmesg | grep 'sd $scsiID'`;
+
+	if ($bdlookup[-1] =~ /$scsiID: \[(.*)\]/) {
+		if (-e "/dev/$1") {
+			print "Block Device: $1\n";
+			my @pstrs = `dmesg | grep $1:`;
+			my @pstr  = split(" ", $pstrs[-1]);
+
+			print "Scanning partitions: \n";
+
+			for (my $i = 3; $i < scalar @pstr; $i++) {
+				print "  Found partition: /dev/$pstr[$i]\n";
+				push(@partitions, $pstr[$i]);
+			}
+
+			print "Attempting to mount first partiton:";
+			if (!-e "/mnt/psp") {
+				system "mkdir /mnt/psp";
+			}
+
+			unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] /mnt/psp") {
+				print " ok\n";
+				print "\nPSP mounted to /mnt/psp\n";
+			}
+			
+		} else {
+			die "Found PSP but it's not mountable!  Exiting.\n";
+		}
+	}
+} else {
+	die "Can't find PSP in dmesg!  Exiting.\n";
+}

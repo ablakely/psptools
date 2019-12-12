@@ -31,6 +31,11 @@ if ($ARGV[$idx] eq "-p" || $ARGV[$idx] eq "--path") {
 
 
 EXEC:
+
+if (`whoami` !~ /root/) {
+	die "This program requires root!  Exiting...\n";
+}
+
 if (-e "$mountpath") {
 	unless (system "sync && umount $mountpath && rmdir $mountpath") {
 		exit;

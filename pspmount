@@ -43,7 +43,7 @@ my @partitions;
 
 print "Looking for PSP...\n";
 
-my @pspgrep  = `dmesg | grep Sony | grep PSP`;
+my @pspgrep  = `dmesg | grep PSP`;
 
 if ($pspgrep[-1] =~ /scsi (.*)/) {
 	my @s = split(" ", $1);
@@ -51,33 +51,37 @@ if ($pspgrep[-1] =~ /scsi (.*)/) {
 	$scsiID =~ s/\:$//;
 
 	print "\nFOUND! \nADDR: $scsiID\n";
-	my @bdlookup = `dmesg | grep 'sd $scsiID'`;
+	my @bdlookup = `dmesg | grep '$scsiID'`;
 
-	if ($bdlookup[-1] =~ /$scsiID: \[(.*)\]/) {
-		if (-e "/dev/$1") {
-			print "Block Device: $1\n";
-			my @pstrs = `dmesg | grep $1:`;
-			my @pstr  = split(" ", $pstrs[-1]);
+	foreach my $lookup (@bdlookup) {
+		if ($lookup =~ /$scsiID: \[(.*)\]/) {
 
-			print "Scanning partitions: \n";
+			if (-e "/dev/$1") {
+				print "Block Device: $1\n";
+				my @pstrs = `dmesg | grep $1:`;
+				my @pstr  = split(" ", $pstrs[-1]);
 
-			for (my $i = 3; $i < scalar @pstr; $i++) {
-				print "  Found partition: /dev/$pstr[$i]\n";
-				push(@partitions, $pstr[$i]);
+				print "Scanning for /dev/$1 partitions: \n";
+
+				for (my $i = 3; $i < scalar @pstr; $i++) {
+					print "  Found partition: /dev/$pstr[$i]\n";
+					push(@partitions, $pstr[$i]);
+				}
+
+				print "Attempting to mount first partiton:";
+				if (!-e "$mountpath") {
+					system "mkdir $mountpath";
+				}
+
+				unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] $mountpath") {
+					print " ok\n";
+					print "\nPSP mounted to $mountpath\n";
+					exit;
+				}
+
+			} else {
+				die "Found PSP but it's not mountable!  Exiting.\n";
 			}
-
-			print "Attempting to mount first partiton:";
-			if (!-e "$mountpath") {
-				system "mkdir $mountpath";
-			}
-
-			unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] $mountpath") {
-				print " ok\n";
-				print "\nPSP mounted to $mountpath\n";
-			}
-
-		} else {
-			die "Found PSP but it's not mountable!  Exiting.\n";
 		}
 	}
 } else {

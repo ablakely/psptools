@@ -16,9 +16,13 @@ my $idx       = 0;
 MODS:
 if (not defined $ARGV[$idx]) { goto EXEC; }
 
-if ($ARGV[$idx] eq "-V" || $ARGV[$idx] eq "--version") {
-	print "pspmount: v0.5\nWritten by Aaron Blakely <aaron\@ephasic.org>\n\n";
-	print "pspmount is distributed as part of the psptools package: http://github.com/ablakely/psptools\n";
+if ($ARGV[$idx] eq "-V" || $ARGV[$idx] eq "-h" || $ARGV[$idx] eq "--help" || $ARGV[$idx] eq "--version") {
+	print "\npspmount v0.5:  Automates the mounting process on systems which don't have automounting.\n";
+	print "Written by Aaron Blakely <aaron\@ephasic.org>\n\n";
+	print "Usage: $0 [-hp] [path]\n";
+	print "  -h - Displays this message.\n";
+	print "  -p [path] - Changes the mountpoint.\n\n";
+	print "pspmount is distributed as part of the psptools package: http://github.com/ablakely/psptools\n\n";
 	exit;
 }
 

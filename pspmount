@@ -10,8 +10,12 @@
 use strict;
 use warnings;
 
-my $mountpath = "/mnt/psp";
-my $idx       = 0;
+my $mountpath     = "/mnt/psp";
+my $idx           = 0;
+my $createRestore = 0;
+my $restoreMode   = 0;
+my $cfilePath     = "";
+my $rfilePath     = "";
 
 MODS:
 if (not defined $ARGV[$idx]) { goto EXEC; }
@@ -21,9 +25,31 @@ if ($ARGV[$idx] eq "-V" || $ARGV[$idx] eq "-h" || $ARGV[$idx] eq "--help" || $AR
 	print "Written by Aaron Blakely <aaron\@ephasic.org>\n\n";
 	print "Usage: $0 [-hp] [path]\n";
 	print "  -h - Displays this message.\n";
-	print "  -p [path] - Changes the mountpoint.\n\n";
+	print "  -p [path] - Changes the mountpoint.\n";
+	print "  -b [file] - Creates a backup image of the PSP.\n";
+	print "  -r [file] - Restores the PSP from a backup image.\n\n";
 	print "pspmount is distributed as part of the psptools package: http://github.com/ablakely/psptools\n\n";
 	exit;
+}
+
+if ($ARGV[$idx] eq "-b" || $ARGV[$idx] eq "--backup") {
+	$createRestore = 1;
+	$cfilePath     = $ARGV[++$idx];
+
+	unless (system "sync && umount $mountpath && rmdir $mountpath") {
+		$idx++;
+		goto MODS;
+	}
+}
+
+if ($ARGV[$idx] eq "-r" || $ARGV[$idx] eq "--restore") {
+	$restoreMode = 1;
+	$rfilePath   = $ARGV[++$idx];
+
+	unless (system "sync && umount $mountpath && rmdir $mountpath") {
+		$idx++;
+		goto MODS;
+	}
 }
 
 if ($ARGV[$idx] eq "-p" || $ARGV[$idx] eq "--path") {
@@ -70,6 +96,10 @@ if ($pspgrep[-1] =~ /scsi (.*)/) {
 				my @pstrs = `dmesg | grep $1:`;
 				my @pstr  = split(" ", $pstrs[-1]);
 
+				if (-e "/dev/$1" && !-e "/dev/".$1."1") {
+					die "Error: PSP found but memory stick is not inserted or formated?  Exiting.\n";
+				}
+
 				print "Scanning for /dev/$1 partitions: \n";
 
 				for (my $i = 3; $i < scalar @pstr; $i++) {
@@ -77,15 +107,27 @@ if ($pspgrep[-1] =~ /scsi (.*)/) {
 					push(@partitions, $pstr[$i]);
 				}
 
-				print "Attempting to mount first partiton:";
+				print "Attempting to mount first partiton...\n";
 				if (!-e "$mountpath") {
 					system "mkdir $mountpath";
 				}
 
-				unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] $mountpath") {
-					print " ok\n";
-					print "\nPSP mounted to $mountpath\n";
-					exit;
+				if (-e "/dev/$partitions[0]") {
+					unless (system "mount -o rw,noauto,async,user,umask=1000 /dev/$partitions[0] $mountpath") {
+						print "\nPSP mounted to $mountpath\n";
+
+						if ($createRestore == 1) {
+							print "Creating backup image of PSP: $cfilePath\n";
+							system "dd if=/dev/$partitions[0] of=$cfilePath";
+						}
+
+						if ($restoreMode == 1) {
+							print "Restoring PSP from $rfilePath\n";
+							system "dd if=$rfilePath of=/dev/$partitions[0]";
+						}
+
+						exit;
+					}
 				}
 
 			} else {

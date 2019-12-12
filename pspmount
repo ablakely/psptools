@@ -96,15 +96,18 @@ if ($pspgrep[-1] =~ /scsi (.*)/) {
 				my @pstrs = `dmesg | grep $1:`;
 				my @pstr  = split(" ", $pstrs[-1]);
 
+
 				if (-e "/dev/$1" && !-e "/dev/".$1."1") {
 					die "Error: PSP found but memory stick is not inserted or formated?  Exiting.\n";
 				}
 
 				print "Scanning for /dev/$1 partitions: \n";
 
-				for (my $i = 3; $i < scalar @pstr; $i++) {
-					print "  Found partition: /dev/$pstr[$i]\n";
-					push(@partitions, $pstr[$i]);
+				for (my $i = 0; $i < scalar @pstr; $i++) {
+					if (-e "/dev/$pstr[$i]") {
+						print "  Found partition: /dev/$pstr[$i]\n";
+						push(@partitions, $pstr[$i]);
+					}
 				}
 
 				print "Attempting to mount first partiton...\n";
